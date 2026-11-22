@@ -10,8 +10,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tournées">
 <meta name="theme-color" content="#e7bf76">
-<meta name="build" content="2026.11.22-13h07">
+<meta name="build" content="2026.11.22-13h27">
 <link rel="manifest" href="manifest.webmanifest">
+<script>window.__BIP=null;window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__BIP=e;try{window.dispatchEvent(new Event("bip-ready"));}catch(_){}});window.addEventListener("appinstalled",function(){window.__BIP=null;window.__INSTALLED=1;try{window.dispatchEvent(new Event("bip-ready"));}catch(_){}});</script>
 <meta name="color-scheme" content="light dark">
 
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
@@ -518,6 +519,7 @@ body::after{content:"";display:block;height:76px}
     <div class="m" id="fxInfo"></div>
     <div class="m" style="margin-top:12px" id="upInfo">📲 Version de l’appli : …</div>
     <button class="btn" type="button" id="upBtn">🔄 Rechercher une mise à jour</button>
+    <button class="btn primary" type="button" id="instBtn">📲 Installer l’appli sur le téléphone</button>
     <button class="btn" type="button" id="newWeek">Nouvelle semaine : vider tous les jours</button>
     </div></details>
   </form>
@@ -2492,6 +2494,22 @@ vsay:function(P,v,n){var at=0;for(var k=0;k<n;k++){var x=k/Math.max(1,n-1),cont=
   ["ctBtn","ldBtn","mapBtn","cfgBtn"].forEach(function(id){$(id).addEventListener("click",function(){moreOpen=false;drawMore();});});
 
 
+
+  /* ===== Installer l'appli (écran d'accueil / menu des applis) ===== */
+  function isStandalone(){try{return window.matchMedia("(display-mode: standalone)").matches||window.matchMedia("(display-mode: fullscreen)").matches||navigator.standalone===true;}catch(e){return false;}}
+  function instLbl(){var b=$("instBtn");if(!b)return;if(!/^https?:$/.test(location.protocol)||INF){b.hidden=true;return;}b.hidden=false;
+    if(isStandalone()||window.__INSTALLED){b.textContent="✔ L’appli est installée";b.disabled=true;b.className="btn";}else{b.disabled=false;b.className="btn primary";b.textContent="📲 Installer l’appli sur le téléphone";}}
+  function instHelp(){var ua=navigator.userAgent||"",brave=!!(navigator.brave),samsung=/SamsungBrowser/i.test(ua),ff=/Firefox/i.test(ua);
+    var how=brave?"Dans Brave : menu ⋮ → « Ajouter à l’écran d’accueil » (ou « Installer l’application »).":samsung?"Dans Samsung Internet : menu ☰ → « Ajouter la page à » → « Écran d’accueil ».":ff?"Dans Firefox : menu ⋮ → « Installer » (ou « Ajouter à l’écran d’accueil »).":"Dans Chrome : menu ⋮ → « Installer et créer un raccourci » (ou « Ajouter à l’écran d’accueil »). Si l’option n’apparaît pas : recharge la page, attends 30 secondes, puis réessaie ce bouton.";
+    sheet("📲 Installer l’appli",how+"\nL’icône du camion « Tournées » apparaîtra sur l’écran d’accueil et dans le menu des applis.",[{t:"OK",p:1}]);}
+  function instGo(){var e=window.__BIP;if(!e){instHelp();return;}
+    try{e.prompt();Promise.resolve(e.userChoice).then(function(c){window.__BIP=null;if(c&&c.outcome==="accepted"){window.__INSTALLED=1;toast("✔ Appli installée : retrouve l’icône « Tournées » sur l’écran d’accueil.");}else toast("Installation annulée.");instLbl();});}catch(x){instHelp();}}
+  $("instBtn").onclick=instGo;instLbl();
+  var instAsked=false;
+  function instOffer(){instLbl();if(instAsked||!window.__BIP||isStandalone()||cfg.instNo&&Date.now()<cfg.instNo)return;instAsked=true;
+    setTimeout(function(){if(document.getElementById("mvSheet"))return;sheet("📲 Installer Mes tournées ?","Ajoute l’appli sur ton téléphone : une icône sur l’écran d’accueil, en plein écran, et elle marche sans réseau.",[
+      {t:"📲 Installer",p:1,f:instGo},{t:"Plus tard",d:"Le bouton est aussi dans Réglages → Sauvegarde",f:function(){cfg.instNo=Date.now()+3*864e5;saveCfg();}}]);},3000);}
+  window.addEventListener("bip-ready",instOffer);if(window.__BIP)instOffer();
   /* ===== Mises à jour automatiques (appli Chrome / GitHub Pages) ===== */
   var BUILD=(document.querySelector('meta[name="build"]')||{}).content||"";
   var upOK=/^https?:$/.test(location.protocol)&&"serviceWorker" in navigator;
